@@ -3,7 +3,7 @@ import io from "socket.io-client";
 import SimplePeer from "simple-peer";
 import MonacoEditor from "react-monaco-editor";
 
-const socket = io("https://localhost:5000", {
+const socket = io("https://codesync-q15y.onrender.com", {
   withCredentials: true,
 });
 
@@ -184,11 +184,14 @@ const App = () => {
   const handleRunCode = async () => {
     setIsLoading(true); // Set loading to true
     try {
-      const response = await fetch("https://localhost:5000/run-code", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ code, language, roomId, input }), // Include input in the request
-      });
+      const response = await fetch(
+        "https://codesync-q15y.onrender.com/run-code",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ code, language, roomId, input }), // Include input in the request
+        }
+      );
       const result = await response.json();
       setOutput(result.output); // Set the output
     } catch (err) {

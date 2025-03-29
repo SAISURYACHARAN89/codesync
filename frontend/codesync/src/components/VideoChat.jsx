@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from "react";
 import SimplePeer from "simple-peer";
 import { io } from "socket.io-client";
 
-const socket = io("https://192.168.239.242:5000/"); // Change to your server URL
+const socket = io("https://codesync-q15y.onrender.com"); // Change to your server URL
 
 const VideoChat = ({ roomId }) => {
   const localVideoRef = useRef();
