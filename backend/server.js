@@ -11,18 +11,16 @@ const app = express();
 // Enable CORS with credentials
 app.use(
   cors({
-    origin: ['https://localhost:5173','https://192.168.239.242:5173'], // Allow frontend origin
-    credentials: true, // Allow credentials
+    origin: '*', // Allow frontend domain (update as needed)
+    credentials: true,
   })
 );
 
 app.use(express.json());
-const options = {
-  key: fs.readFileSync('./certs/key.pem'),
-  cert: fs.readFileSync('./certs/cert.pem'),
-};
+
+
 // Create an HTTP server
-const server = https.createServer(options, app);
+const server = http.createServer(app);
 
 // Set up Socket.IO
 const io = new Server(server, {
@@ -239,7 +237,8 @@ app.post('/run-code', async (req, res) => {
   }
 });
 app.get("/",(req,res)=>{
-  res.send("test sucess")
-})
+  res.send("test sucess");
+});
 const PORT = process.env.PORT || 5000;
-server.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+server.listen(PORT, () => console.log(`✅ Server running on port ${PORT}`))
+  .on('error', (err) => console.error('❌ Server startup error:', err));
