@@ -13,5 +13,8 @@ export default defineConfig({
       key: fs.readFileSync(path.resolve(__dirname, './certs/key.pem')),
       cert: fs.readFileSync(path.resolve(__dirname, './certs/cert.pem'))
     }
-  }
+  },
+  build: {
+    outDir: 'dist',
+  },
 });
