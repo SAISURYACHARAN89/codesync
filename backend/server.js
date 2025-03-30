@@ -4,8 +4,11 @@ const cors = require('cors');
 const http = require('http');
 const { Server } = require('socket.io');
 const Docker = require('dockerode');
-const docker = new Docker();
-
+const docker = new Docker(
+  process.env.DOCKER_HOST 
+    ? { host: process.env.DOCKER_HOST } 
+    : { socketPath: '/var/run/docker.sock' }
+);
 const app = express();
 
 // Enable CORS with credentials
@@ -25,7 +28,7 @@ const server = http.createServer(app);
 // Set up Socket.IO
 const io = new Server(server, {
   cors: {
-    origin: '*', // Allow frontend origin
+    origin: ['https://localhost:5173','https://192.168.239.242:5173'], // Allow frontend origin
     methods: ['GET', 'POST'],
     credentials: true, // Allow credentials
   },
