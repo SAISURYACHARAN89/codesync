@@ -3,12 +3,7 @@ const fs = require('fs');
 const cors = require('cors');
 const http = require('http');
 const { Server } = require('socket.io');
-const Docker = require('dockerode');
-const docker = new Docker(
-  process.env.DOCKER_HOST 
-    ? { host: process.env.DOCKER_HOST } 
-    : { socketPath: '/var/run/docker.sock' }
-);
+
 const app = express();
 
 // Enable CORS with credentials
@@ -105,140 +100,36 @@ const stripDockerHeader = (logs) => {
 };
 
 // Run code in a Docker container
-app.post('/run-code', async (req, res) => {
-  const { code, language, roomId,input } = req.body;
-
-  // Validate input
+app.post('/run-code', (req, res) => {
+  const { code, language, roomId } = req.body;
   if (!code || !language) {
     return res.status(400).json({ error: 'Code and language are required' });
   }
 
-  let dockerImage, command;
+  let command;
   switch (language) {
     case 'python':
-      dockerImage = 'python:3.9';
-      command = `python -c "${code.replace(/"/g, '\\"')}"`;
+      command = `python3 -c "${code.replace(/"/g, '\\"')}"`;
       break;
     case 'cpp':
-      dockerImage = 'gcc';
-      command = `bash -c "echo '${code.replace(/"/g, '\\"')}' > temp.cpp && g++ temp.cpp -o temp && ./temp"`;
+      command = `echo '${code}' > temp.cpp && g++ temp.cpp -o temp && ./temp`;
       break;
     case 'java':
-      dockerImage = 'openjdk:11';
-      command = `bash -c "echo '${code.replace(/"/g, '\\"')}' > Main.java && javac Main.java && java Main"`;
+      command = `echo '${code}' > Main.java && javac Main.java && java Main`;
       break;
     default:
       return res.status(400).json({ error: 'Unsupported language' });
   }
 
-  let container;
-  try {
-    // Pull the Docker image if it doesn't exist locally
-    try {
-      await docker.getImage(dockerImage).inspect();
-    } catch (err) {
-      console.log(`Pulling Docker image: ${dockerImage}`);
-      await docker.pull(dockerImage);
+  exec(command, (error, stdout, stderr) => {
+    if (error) {
+      return res.status(500).json({ error: stderr || error.message });
     }
-
-    // Create the container
-    container = await docker.createContainer({
-      Image: dockerImage,
-      Cmd: ['sh', '-c', command],
-      Tty: false,
-    });
-
-    // Start the container
-    await container.start();
-
-    // Wait for the container to finish execution (with a timeout of 5 seconds)
-    const timeout = 5000; // 5 seconds
-    const logs = await new Promise((resolve, reject) => {
-      // Set a timeout to handle long-running containers
-      const timeoutId = setTimeout(() => {
-        reject(new Error('Container execution timed out'));
-      }, timeout);
-
-      // Get container logs
-      container.logs({ stdout: true, stderr: true, follow: true }, (err, stream) => {
-        if (err) {
-          clearTimeout(timeoutId);
-          return reject(err);
-        }
-
-        let output = '';
-        stream.on('data', (chunk) => {
-          output += chunk.toString();
-        });
-
-        stream.on('end', () => {
-          clearTimeout(timeoutId);
-          resolve(output);
-        });
-
-        stream.on('error', (err) => {
-          clearTimeout(timeoutId);
-          reject(err);
-        });
-      });
-    });
-
-    // Strip Docker log headers from the output
-    const cleanLogs = stripDockerHeader(logs);
-
-    // Attempt to stop the container (if it's still running)
-    try {
-      await container.stop();
-    } catch (stopErr) {
-      // Ignore errors if the container is already stopped
-      if (!stopErr.message.includes('already stopped')) {
-        throw stopErr;
-      }
-    }
-
-    // Remove the container
-    try {
-      await container.remove();
-    } catch (removeErr) {
-      // Ignore errors if the container is already removed
-      if (!removeErr.message.includes('no such container')) {
-        throw removeErr;
-      }
-    }
-
-    // Emit the output to the room
-    io.to(roomId).emit('output-update', cleanLogs);
-
-    // Send the clean output back to the client
-    res.json({ output: cleanLogs });
-  } catch (err) {
-    console.error('Error running code:', err);
-
-    // Force remove the container if it exists
-    if (container) {
-      try {
-        await container.stop();
-      } catch (stopErr) {
-        // Ignore errors if the container is already stopped
-        if (!stopErr.message.includes('already stopped')) {
-          console.error('Error stopping container:', stopErr);
-        }
-      }
-
-      try {
-        await container.remove();
-      } catch (removeErr) {
-        // Ignore errors if the container is already removed
-        if (!removeErr.message.includes('no such container')) {
-          console.error('Error removing container:', removeErr);
-        }
-      }
-    }
-
-    // Send error response to the client
-    res.status(500).json({ error: err.message });
-  }
+    io.to(roomId).emit('output-update', stdout);
+    res.json({ output: stdout });
+  });
 });
+
 app.get("/",(req,res)=>{
   res.send("test sucess");
 });
