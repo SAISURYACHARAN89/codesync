@@ -87,17 +87,6 @@ const generateRoomId = () => {
   return Math.random().toString(36).substring(2, 8).toUpperCase();
 };
 
-// Function to strip Docker log headers
-const stripDockerHeader = (logs) => {
-  return logs
-    .toString()
-    .split('\n')
-    .map((line) => {
-      // Remove the first 8 bytes (Docker log header)
-      return line.slice(8);
-    })
-    .join('\n');
-};
 
 // Run code in a Docker container
 app.post('/run-code', (req, res) => {
