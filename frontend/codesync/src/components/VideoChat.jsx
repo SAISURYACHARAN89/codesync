@@ -2,78 +2,113 @@ import React, { useEffect, useRef, useState } from "react";
 import SimplePeer from "simple-peer";
 import { io } from "socket.io-client";
 
-const socket = io("https://codesync-q15y.onrender.com"); // Change to your server URL
-
 const VideoChat = ({ roomId }) => {
   const localVideoRef = useRef();
   const remoteVideoRef = useRef();
   const [peers, setPeers] = useState([]);
   const [localStream, setLocalStream] = useState(null);
   const peersRef = useRef([]);
+  const socketRef = useRef();
 
   useEffect(() => {
-    navigator.mediaDevices
-      .getUserMedia({ video: true, audio: true })
-      .then((stream) => {
+    // Initialize socket connection
+    socketRef.current = io("https://codesync-q15y.onrender.com");
+
+    const setupMedia = async () => {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({
+          video: true,
+          audio: true,
+        });
+
         localVideoRef.current.srcObject = stream;
         setLocalStream(stream);
 
-        socket.emit("join-room", roomId);
+        socketRef.current.emit("join-room", roomId);
 
-        socket.on("user-joined", (userId) => {
-          const peer = createPeer(userId, socket.id, stream, roomId);
-          peersRef.current.push({
-            peerId: userId,
-            peer,
-          });
-          setPeers(peersRef.current);
+        socketRef.current.on("user-connected", (userId) => {
+          console.log("User connected:", userId);
+          if (userId !== socketRef.current.id) {
+            const peer = createPeer(userId, socketRef.current.id, stream);
+            peersRef.current.push({
+              peerId: userId,
+              peer,
+            });
+            setPeers([...peersRef.current]);
+          }
         });
 
-        socket.on("user-signal", (payload) => {
-          const item = peersRef.current.find((p) => p.peerId === payload.from);
-          if (!item) {
+        socketRef.current.on("signal", (payload) => {
+          console.log("Received signal from:", payload.from);
+          const existingPeer = peersRef.current.find(
+            (p) => p.peerId === payload.from
+          );
+
+          if (!existingPeer) {
             const peer = addPeer(payload.signal, payload.from, stream);
             peersRef.current.push({
               peerId: payload.from,
               peer,
             });
-            setPeers(peersRef.current);
+            setPeers([...peersRef.current]);
           } else {
-            item.peer.signal(payload.signal);
+            existingPeer.peer.signal(payload.signal);
           }
         });
 
-        socket.on("user-disconnected", (userId) => {
+        socketRef.current.on("user-disconnected", (userId) => {
+          console.log("User disconnected:", userId);
           const peerObj = peersRef.current.find((p) => p.peerId === userId);
           if (peerObj) peerObj.peer.destroy();
+
           peersRef.current = peersRef.current.filter(
             (p) => p.peerId !== userId
           );
-          setPeers(peersRef.current);
+          setPeers([...peersRef.current]);
         });
-      })
-      .catch((err) => console.error("Error accessing media devices:", err));
+      } catch (err) {
+        console.error("Failed to get media devices:", err);
+      }
+    };
+
+    setupMedia();
 
     return () => {
-      localStream?.getTracks().forEach((track) => track.stop());
+      if (localStream) {
+        localStream.getTracks().forEach((track) => track.stop());
+      }
       peersRef.current.forEach((peerObj) => peerObj.peer.destroy());
-      socket.disconnect();
+      if (socketRef.current) socketRef.current.disconnect();
     };
   }, [roomId]);
 
-  function createPeer(userId, callerId, stream, roomId) {
+  function createPeer(userId, callerId, stream) {
     const peer = new SimplePeer({
       initiator: true,
       trickle: false,
-      stream,
+      stream: stream,
+      config: {
+        iceServers: [{ urls: "stun:stun.l.google.com:19302" }],
+      },
     });
 
     peer.on("signal", (signal) => {
-      socket.emit("signal", { roomId, signal, to: userId, from: callerId });
+      socketRef.current.emit("signal", {
+        roomId,
+        signal,
+        to: userId,
+        from: callerId,
+      });
     });
 
     peer.on("stream", (remoteStream) => {
-      remoteVideoRef.current.srcObject = remoteStream;
+      if (remoteVideoRef.current) {
+        remoteVideoRef.current.srcObject = remoteStream;
+      }
+    });
+
+    peer.on("error", (err) => {
+      console.error("Peer error:", err);
     });
 
     return peer;
@@ -83,15 +118,29 @@ const VideoChat = ({ roomId }) => {
     const peer = new SimplePeer({
       initiator: false,
       trickle: false,
-      stream,
+      stream: stream,
+      config: {
+        iceServers: [{ urls: "stun:stun.l.google.com:19302" }],
+      },
     });
 
     peer.on("signal", (signal) => {
-      socket.emit("signal", { roomId, signal, to: callerId, from: socket.id });
+      socketRef.current.emit("signal", {
+        roomId,
+        signal,
+        to: callerId,
+        from: socketRef.current.id,
+      });
     });
 
     peer.on("stream", (remoteStream) => {
-      remoteVideoRef.current.srcObject = remoteStream;
+      if (remoteVideoRef.current) {
+        remoteVideoRef.current.srcObject = remoteStream;
+      }
+    });
+
+    peer.on("error", (err) => {
+      console.error("Peer error:", err);
     });
 
     peer.signal(incomingSignal);
@@ -105,13 +154,13 @@ const VideoChat = ({ roomId }) => {
         autoPlay
         muted
         playsInline
-        style={{ width: "200px", height: "150px" }}
+        style={{ width: "200px", height: "150px", border: "2px solid green" }}
       />
       <video
         ref={remoteVideoRef}
         autoPlay
         playsInline
-        style={{ width: "200px", height: "150px" }}
+        style={{ width: "200px", height: "150px", border: "2px solid blue" }}
       />
     </div>
   );
