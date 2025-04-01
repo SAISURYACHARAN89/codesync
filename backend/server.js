@@ -61,6 +61,14 @@ io.on('connection', (socket) => {
   socket.on('code-change', (newCode, roomId) => {
     socket.to(roomId).emit('code-update', newCode); // Broadcast to the room
   });
+  
+  socket.on('signal', (payload) => {
+    io.to(payload.to).emit('user-signal', {
+      signal: payload.signal,
+      from: payload.from,
+      roomId: payload.roomId
+    });
+  });
 
   // Handle cursor updates within a room
   socket.on('cursor-update', ({ cursorPosition }, roomId) => {
