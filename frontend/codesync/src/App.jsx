@@ -15,7 +15,6 @@ const App = () => {
   const [roomId, setRoomId] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [connectionStatus, setConnectionStatus] = useState("disconnected");
-  const [cursorPositions, setCursorPositions] = useState({});
   const [mediaError, setMediaError] = useState(null);
 
   const localVideoRef = useRef();
@@ -30,10 +29,10 @@ const App = () => {
     const socket = io("https://codesync-q15y.onrender.com", {
       withCredentials: true,
       transports: ["websocket", "polling"],
-      reconnectionAttempts: 5,
-      reconnectionDelay: 1000,
-      timeout: 20000,
-      forceNew: true,
+      reconnectionAttempts: 10,
+      reconnectionDelay: 2000,
+      timeout: 30000,
+      forceNew: false,
     });
 
     socketRef.current = socket;
