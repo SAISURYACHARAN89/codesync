@@ -16,17 +16,17 @@ const VideoChat = ({ roomId }) => {
 
     const setupMedia = async () => {
       try {
-        const stream = await navigator.mediaDevices.getUserMedia({
-          video: true,
-          audio: true,
+        const stream = await navigator.mediaDevices.getUserMedia({ 
+          video: true, 
+          audio: true 
         });
-
+        
         localVideoRef.current.srcObject = stream;
         setLocalStream(stream);
 
         socketRef.current.emit("join-room", roomId);
 
-        socketRef.current.on("user-connected", (userId) => {
+        socketRef.current.on("user-connected", userId => {
           console.log("User connected:", userId);
           if (userId !== socketRef.current.id) {
             const peer = createPeer(userId, socketRef.current.id, stream);
@@ -38,12 +38,10 @@ const VideoChat = ({ roomId }) => {
           }
         });
 
-        socketRef.current.on("signal", (payload) => {
+        socketRef.current.on("signal", payload => {
           console.log("Received signal from:", payload.from);
-          const existingPeer = peersRef.current.find(
-            (p) => p.peerId === payload.from
-          );
-
+          const existingPeer = peersRef.current.find(p => p.peerId === payload.from);
+          
           if (!existingPeer) {
             const peer = addPeer(payload.signal, payload.from, stream);
             peersRef.current.push({
@@ -56,16 +54,15 @@ const VideoChat = ({ roomId }) => {
           }
         });
 
-        socketRef.current.on("user-disconnected", (userId) => {
+        socketRef.current.on("user-disconnected", userId => {
           console.log("User disconnected:", userId);
-          const peerObj = peersRef.current.find((p) => p.peerId === userId);
+          const peerObj = peersRef.current.find(p => p.peerId === userId);
           if (peerObj) peerObj.peer.destroy();
-
-          peersRef.current = peersRef.current.filter(
-            (p) => p.peerId !== userId
-          );
+          
+          peersRef.current = peersRef.current.filter(p => p.peerId !== userId);
           setPeers([...peersRef.current]);
         });
+
       } catch (err) {
         console.error("Failed to get media devices:", err);
       }
@@ -75,9 +72,9 @@ const VideoChat = ({ roomId }) => {
 
     return () => {
       if (localStream) {
-        localStream.getTracks().forEach((track) => track.stop());
+        localStream.getTracks().forEach(track => track.stop());
       }
-      peersRef.current.forEach((peerObj) => peerObj.peer.destroy());
+      peersRef.current.forEach(peerObj => peerObj.peer.destroy());
       if (socketRef.current) socketRef.current.disconnect();
     };
   }, [roomId]);
@@ -88,26 +85,28 @@ const VideoChat = ({ roomId }) => {
       trickle: false,
       stream: stream,
       config: {
-        iceServers: [{ urls: "stun:stun.l.google.com:19302" }],
-      },
+        iceServers: [
+          { urls: 'stun:stun.l.google.com:19302' }
+        ]
+      }
     });
 
-    peer.on("signal", (signal) => {
-      socketRef.current.emit("signal", {
-        roomId,
-        signal,
-        to: userId,
-        from: callerId,
+    peer.on("signal", signal => {
+      socketRef.current.emit("signal", { 
+        roomId, 
+        signal, 
+        to: userId, 
+        from: callerId 
       });
     });
 
-    peer.on("stream", (remoteStream) => {
+    peer.on("stream", remoteStream => {
       if (remoteVideoRef.current) {
         remoteVideoRef.current.srcObject = remoteStream;
       }
     });
 
-    peer.on("error", (err) => {
+    peer.on("error", err => {
       console.error("Peer error:", err);
     });
 
@@ -120,26 +119,28 @@ const VideoChat = ({ roomId }) => {
       trickle: false,
       stream: stream,
       config: {
-        iceServers: [{ urls: "stun:stun.l.google.com:19302" }],
-      },
+        iceServers: [
+          { urls: 'stun:stun.l.google.com:19302' }
+        ]
+      }
     });
 
-    peer.on("signal", (signal) => {
-      socketRef.current.emit("signal", {
-        roomId,
-        signal,
-        to: callerId,
-        from: socketRef.current.id,
+    peer.on("signal", signal => {
+      socketRef.current.emit("signal", { 
+        roomId, 
+        signal, 
+        to: callerId, 
+        from: socketRef.current.id 
       });
     });
 
-    peer.on("stream", (remoteStream) => {
+    peer.on("stream", remoteStream => {
       if (remoteVideoRef.current) {
         remoteVideoRef.current.srcObject = remoteStream;
       }
     });
 
-    peer.on("error", (err) => {
+    peer.on("error", err => {
       console.error("Peer error:", err);
     });
 

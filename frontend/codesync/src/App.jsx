@@ -3,7 +3,9 @@ import io from "socket.io-client";
 import SimplePeer from "simple-peer";
 import MonacoEditor from "react-monaco-editor";
 import { Buffer } from "buffer";
-
+import { motion, AnimatePresence } from "framer-motion";
+// import CodeEditor from "./components/CodeEditor";
+// import usePageTransitions from "./components/usePageTrans";
 // Polyfill for browser
 window.Buffer = Buffer;
 
@@ -23,7 +25,7 @@ const App = () => {
   const peerConnections = useRef({});
   const socketRef = useRef();
   const editorRef = useRef();
-
+  // usePageTransitions();
   // Initialize socket connection
   useEffect(() => {
     const socket = io("https://codesync-q15y.onrender.com", {
@@ -379,146 +381,199 @@ const App = () => {
       setMediaError(err.message);
     }
   };
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    visible: {
+      opacity: 1,
+      transition: {
+        when: "beforeChildren",
+        staggerChildren: 0.1,
+      },
+    },
+  };
+
+  const itemVariants = {
+    hidden: { y: 20, opacity: 0 },
+    visible: {
+      y: 0,
+      opacity: 1,
+      transition: {
+        duration: 0.5,
+      },
+    },
+  };
 
   return (
-    <div style={{ display: "flex", gap: "20px", padding: "20px" }}>
-      {/* Left side - Editor */}
-      <div style={{ flex: 1 }}>
-        <h1>Collaborative Code Editor</h1>
-        <div
-          style={{
-            marginBottom: "10px",
-            display: "flex",
-            gap: "10px",
-            alignItems: "center",
-          }}
-        >
-          <span>
-            Status:
-            <span
-              style={{
-                color:
-                  connectionStatus === "connected"
-                    ? "green"
-                    : connectionStatus === "error"
-                    ? "red"
-                    : "orange",
-                marginLeft: "5px",
-              }}
-            >
-              {connectionStatus}
-            </span>
-          </span>
-          <button
-            onClick={handleCreateRoom}
-            disabled={!socketRef.current?.connected}
-          >
-            Create Room
-          </button>
-          <button
-            onClick={handleJoinRoom}
-            disabled={!socketRef.current?.connected}
-          >
-            Join Room
-          </button>
-          {roomId && <span>Room: {roomId}</span>}
-          <select
-            value={language}
-            onChange={(e) => setLanguage(e.target.value)}
-            style={{ padding: "5px" }}
-          >
-            <option value="python">Python</option>
-            <option value="cpp">C++</option>
-            <option value="java">Java</option>
-          </select>
-          <button
-            onClick={handleRunCode}
-            disabled={isLoading || !socketRef.current?.connected}
-          >
-            {isLoading ? "Running..." : "Run"}
-          </button>
-        </div>
+    <AnimatePresence>
+      <motion.div
+        initial="hidden"
+        animate="visible"
+        variants={containerVariants}
+        style={{
+          display: "flex",
+          gap: "20px",
+          padding: "20px",
+          backgroundColor: "#282c34",
+          minHeight: "100vh",
+        }}
+      >
+        {/* Left side - Editor */}
+        <div style={{ flex: 1 }}>
+          <motion.h1 style={{ color: "#d84041" }} variants={itemVariants}>
+            Code Sync
+          </motion.h1>
 
-        <MonacoEditor
-          width="800"
-          height="500"
-          language={language}
-          theme="vs-dark"
-          value={code}
-          onChange={handleCodeChange}
-          editorDidMount={handleEditorMount}
-          options={{
-            automaticLayout: true,
-            minimap: { enabled: false },
-            scrollBeyondLastLine: false,
-          }}
-        />
-
-        <div style={{ marginTop: "20px" }}>
-          <h3>Input</h3>
-          <textarea
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            style={{ width: "100%", height: "80px", padding: "8px" }}
-            placeholder="Enter input for your code here..."
-          />
-
-          <h3>Output {isLoading && "(Running...)"}</h3>
-          <pre
+          <motion.div
+            variants={itemVariants}
             style={{
-              background: "#f0f0f0",
-              padding: "10px",
-              whiteSpace: "pre-wrap",
-              maxHeight: "200px",
-              overflow: "auto",
+              marginBottom: "10px",
+              display: "flex",
+              gap: "10px",
+              alignItems: "center",
             }}
           >
-            {output || "No output yet"}
-          </pre>
-        </div>
-      </div>
-
-      {/* Right side - Video */}
-      <div style={{ width: "300px" }}>
-        <h2>Video Conference</h2>
-        {mediaError && (
-          <div style={{ color: "red", marginBottom: "10px" }}>
-            <p>Media Error: {mediaError}</p>
-            <button onClick={retryMedia}>Retry Camera/Mic</button>
-          </div>
-        )}
-        <video
-          ref={localVideoRef}
-          autoPlay
-          muted
-          playsInline
-          style={{
-            width: "100%",
-            marginBottom: "10px",
-            backgroundColor: "#000",
-            aspectRatio: "4/3",
-          }}
-        />
-        {peers.length > 0 ? (
-          peers.map((peer) => (
-            <video
-              key={peer.userId}
-              ref={(ref) => ref && (ref.srcObject = peer.stream)}
-              autoPlay
-              playsInline
+            <span style={{ color: "white" }}>
+              Status:
+              <span
+                style={{
+                  color:
+                    connectionStatus === "connected"
+                      ? "green"
+                      : connectionStatus === "error"
+                      ? "red"
+                      : "orange",
+                  marginLeft: "5px",
+                }}
+              >
+                {connectionStatus}
+              </span>
+            </span>
+            <motion.button
+              onClick={handleCreateRoom}
+              disabled={!socketRef.current?.connected}
+              whileHover={{ scale: 1.05, backgroundColor: "#e05a5b" }}
+              whileTap={{ scale: 0.95 }}
               style={{
-                width: "100%",
-                marginBottom: "10px",
-                backgroundColor: "#000",
-                aspectRatio: "4/3",
+                backgroundColor: "#d84041",
+                color: "white",
+                border: "none",
+                padding: "8px 16px",
+                borderRadius: "4px",
+                cursor: "pointer",
+                fontSize: "14px",
+                transition: "background-color 0.2s",
+              }}
+              whileFocus={{ boxShadow: "0 0 0 2px rgba(216, 64, 65, 0.5)" }}
+            >
+              Create Room
+            </motion.button>
+
+            <motion.button
+              onClick={handleJoinRoom}
+              disabled={!socketRef.current?.connected}
+              whileHover={{ scale: 1.05, backgroundColor: "#e05a5b" }}
+              whileTap={{ scale: 0.95 }}
+              style={{
+                backgroundColor: "#d84041",
+                color: "white",
+                border: "none",
+                padding: "8px 16px",
+                borderRadius: "4px",
+                cursor: "pointer",
+                fontSize: "14px",
+                transition: "background-color 0.2s",
+              }}
+              whileFocus={{ boxShadow: "0 0 0 2px rgba(216, 64, 65, 0.5)" }}
+            >
+              Join Room
+            </motion.button>
+            {roomId && <span style={{color : "white"}}>Room: {roomId}</span>}
+            <motion.select
+              value={language}
+              onChange={(e) => setLanguage(e.target.value)}
+              style={{ padding: "5px" }}
+              whileFocus={{ scale: 1.02 }}
+            >
+              <option value="python">Python</option>
+              <option value="cpp">C++</option>
+              <option value="java">Java</option>
+            </motion.select>
+            <motion.button
+              onClick={handleRunCode}
+              disabled={isLoading || !socketRef.current?.connected}
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              animate={{
+                backgroundColor: isLoading ? "#d84041" : "#d84041",
+              }}
+              style={{
+                backgroundColor: "#d84041",
+                color: "white",
+                border: "none",
+                padding: "8px 16px",
+                borderRadius: "4px",
+                cursor: "pointer",
+                fontSize: "14px",
+                transition: "background-color 0.2s",
+              }}
+            >
+              {isLoading ? "Running..." : "Run"}
+            </motion.button>
+          </motion.div>
+
+          <motion.div
+            variants={itemVariants}
+           
+          >
+            <MonacoEditor
+              width="800"
+              height="500"
+              language={language}
+              theme="vs-dark"
+              value={code}
+              onChange={handleCodeChange}
+              editorDidMount={handleEditorMount}
+              options={{
+                automaticLayout: true,
+                minimap: { enabled: false },
+                scrollBeyondLastLine: false,
               }}
             />
-          ))
-        ) : (
-          <p>No other participants in room</p>
-        )}
-      </div>
-    </div>
+          </motion.div>
+
+          <motion.div style={{ marginTop: "20px" }} variants={itemVariants}>
+            <h3 style={{color : "white"}}>Input</h3>
+            <motion.textarea
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              style={{ width: "100%", height: "80px", padding: "8px" }}
+              placeholder="Enter input for your code here..."
+              whileFocus={{
+                boxShadow: "0 0 0 2px #d84041",
+                color : "white",
+                backgroundColor: "rgba(255,255,255,0.1)",
+              }}
+            />
+
+            <h3 style={{color : "white"}}>Output {isLoading && "(Running...)"}</h3>
+            <motion.pre
+              style={{
+                background: "#f0f0f0",
+                padding: "10px",
+                whiteSpace: "pre-wrap",
+                maxHeight: "200px",
+                overflow: "auto",
+              }}
+              animate={{
+                backgroundColor: isLoading ? "#f8f8f8" : "#f0f0f0",
+              }}
+            >
+              {output || "No output yet"}
+            </motion.pre>
+          </motion.div>
+        </div>
+      </motion.div>
+    </AnimatePresence>
   );
 };
 
