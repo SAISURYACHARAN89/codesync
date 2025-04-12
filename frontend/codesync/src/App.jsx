@@ -1,13 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import io from "socket.io-client";
-import SimplePeer from "simple-peer";
 import MonacoEditor from "react-monaco-editor";
-import { Buffer } from "buffer";
 import { motion, AnimatePresence } from "framer-motion";
-// import CodeEditor from "./components/CodeEditor";
-// import usePageTransitions from "./components/usePageTrans";
-// Polyfill for browser
-window.Buffer = Buffer;
 
 const App = () => {
   const [code, setCode] = useState("");
@@ -17,13 +11,8 @@ const App = () => {
   const [roomId, setRoomId] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [connectionStatus, setConnectionStatus] = useState("disconnected");
-  const [mediaError, setMediaError] = useState(null);
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
 
-  const localVideoRef = useRef();
-  const [peers, setPeers] = useState([]);
-  const localStreamRef = useRef();
-  const peerConnections = useRef({});
   const socketRef = useRef();
   const editorRef = useRef();
 
@@ -69,104 +58,6 @@ const App = () => {
     };
   }, []);
 
-  // Get user media and handle WebRTC
-  useEffect(() => {
-    const socket = socketRef.current;
-    if (!socket) return;
-
-    const cleanupMedia = async () => {
-      if (localStreamRef.current) {
-        localStreamRef.current.getTracks().forEach((track) => track.stop());
-        localStreamRef.current = null;
-      }
-    };
-
-    const setupMedia = async () => {
-      try {
-        if (!navigator.mediaDevices?.getUserMedia) {
-          throw new Error("getUserMedia not supported in this browser");
-        }
-
-        const constraints = {
-          video: {
-            width: { ideal: 640 },
-            height: { ideal: 480 },
-            frameRate: { ideal: 30 },
-          },
-          audio: true,
-        };
-
-        const stream = await navigator.mediaDevices.getUserMedia(constraints);
-        localVideoRef.current.srcObject = stream;
-        localStreamRef.current = stream;
-        setMediaError(null);
-
-        if (socket.connected) {
-          socket.emit("ready");
-        }
-      } catch (err) {
-        console.error("Media error:", err);
-        setMediaError(err.message);
-      }
-    };
-
-    setupMedia();
-
-    const handleUserConnected = (userId) => {
-      console.log("New user connected:", userId);
-      if (localStreamRef.current) {
-        createPeer(userId, true);
-      } else {
-        console.warn("Local stream not ready for new peer");
-      }
-    };
-
-    const handleSignal = ({ userId, signal }) => {
-      console.log("Received signal from:", userId);
-      if (!peerConnections.current[userId]) {
-        createPeer(userId, false);
-      }
-
-      // Small delay to ensure peer is properly initialized
-      setTimeout(() => {
-        if (peerConnections.current[userId]) {
-          peerConnections.current[userId].signal(signal);
-        }
-      }, 100);
-    };
-
-    const handleUserDisconnected = (userId) => {
-      console.log("User disconnected:", userId);
-      if (peerConnections.current[userId]) {
-        peerConnections.current[userId].destroy();
-        delete peerConnections.current[userId];
-        setPeers((prev) => prev.filter((p) => p.userId !== userId));
-      }
-    };
-
-    socket.on("user-connected", handleUserConnected);
-    socket.on("signal", handleSignal);
-    socket.on("user-disconnected", handleUserDisconnected);
-
-    return () => {
-      cleanupMedia();
-      socket.off("user-connected", handleUserConnected);
-      socket.off("signal", handleSignal);
-      socket.off("user-disconnected", handleUserDisconnected);
-
-      // Clean up all peer connections
-      Object.values(peerConnections.current).forEach((peer) => {
-        try {
-          peer.destroy();
-        } catch (err) {
-          console.error("Error destroying peer:", err);
-        }
-      });
-      peerConnections.current = {};
-      setPeers([]);
-    };
-  }, []);
-
   // Room management
   useEffect(() => {
     const socket = socketRef.current;
@@ -189,104 +80,30 @@ const App = () => {
       alert("Room not found!");
     };
 
-    socket.on("room-created", handleRoomCreated);
-    socket.on("room-joined", handleRoomJoined);
-    socket.on("room-not-found", handleRoomNotFound);
-
-    return () => {
-      socket.off("room-created", handleRoomCreated);
-      socket.off("room-joined", handleRoomJoined);
-      socket.off("room-not-found", handleRoomNotFound);
-    };
-  }, []);
-
-  // Code and cursor sync
-  useEffect(() => {
-    const socket = socketRef.current;
-    if (!socket) return;
-
     const handleCodeUpdate = (newCode) => {
       if (newCode !== code) {
         setCode(newCode);
       }
     };
 
-    const handleCursorUpdate = ({ userId, cursorPosition }) => {
-      setCursorPositions((prev) => ({
-        ...prev,
-        [userId]: cursorPosition,
-      }));
-    };
-
     const handleOutputUpdate = (newOutput) => {
       setOutput(newOutput);
     };
 
+    socket.on("room-created", handleRoomCreated);
+    socket.on("room-joined", handleRoomJoined);
+    socket.on("room-not-found", handleRoomNotFound);
     socket.on("code-update", handleCodeUpdate);
-    socket.on("cursor-update", handleCursorUpdate);
     socket.on("output-update", handleOutputUpdate);
 
     return () => {
+      socket.off("room-created", handleRoomCreated);
+      socket.off("room-joined", handleRoomJoined);
+      socket.off("room-not-found", handleRoomNotFound);
       socket.off("code-update", handleCodeUpdate);
-      socket.off("cursor-update", handleCursorUpdate);
       socket.off("output-update", handleOutputUpdate);
     };
   }, [code]);
-
-  const createPeer = (userId, initiator) => {
-    if (!localStreamRef.current) {
-      console.error("Cannot create peer: local stream not available");
-      return;
-    }
-
-    try {
-      console.log(
-        `Creating ${initiator ? "initiator" : "receiver"} peer for:`,
-        userId
-      );
-
-      const peer = new SimplePeer({
-        initiator,
-        trickle: false,
-        stream: localStreamRef.current,
-        config: {
-          iceServers: [
-            { urls: "stun:stun.l.google.com:19302" },
-            { urls: "stun:stun1.l.google.com:19302" },
-            { urls: "stun:stun2.l.google.com:19302" },
-          ],
-        },
-        objectMode: false,
-      });
-
-      peer.on("signal", (signal) => {
-        console.log("Sending signal to:", userId);
-        socketRef.current.emit("signal", { userId, signal });
-      });
-
-      peer.on("stream", (stream) => {
-        console.log("Received stream from:", userId);
-        setPeers((prev) => [
-          ...prev.filter((p) => p.userId !== userId),
-          { userId, stream },
-        ]);
-      });
-
-      peer.on("close", () => {
-        console.log("Peer connection closed:", userId);
-        setPeers((prev) => prev.filter((p) => p.userId !== userId));
-        delete peerConnections.current[userId];
-      });
-
-      peer.on("error", (err) => {
-        console.error("Peer error:", userId, err);
-      });
-
-      peerConnections.current[userId] = peer;
-    } catch (err) {
-      console.error("Peer creation error:", err);
-    }
-  };
 
   const handleCreateRoom = () => {
     if (socketRef.current?.connected) {
@@ -332,6 +149,9 @@ const App = () => {
 
       const result = await response.json();
       setOutput(result.output);
+      if (socketRef.current?.connected && roomId) {
+        socketRef.current.emit("output-update", result.output, roomId);
+      }
     } catch (err) {
       console.error("Execution error:", err);
       setOutput(`Error: ${err.message}`);
@@ -349,47 +169,6 @@ const App = () => {
 
   const handleEditorMount = (editor) => {
     editorRef.current = editor;
-
-    editor.onDidChangeCursorPosition((e) => {
-      if (socketRef.current?.connected && roomId) {
-        socketRef.current.emit(
-          "cursor-update",
-          {
-            cursorPosition: e.position,
-          },
-          roomId
-        );
-      }
-    });
-  };
-
-  const retryMedia = async () => {
-    try {
-      if (localStreamRef.current) {
-        localStreamRef.current.getTracks().forEach((track) => track.stop());
-      }
-
-      const constraints = {
-        video: {
-          width: { ideal: 640 },
-          height: { ideal: 480 },
-          frameRate: { ideal: 30 },
-        },
-        audio: true,
-      };
-
-      const stream = await navigator.mediaDevices.getUserMedia(constraints);
-      localVideoRef.current.srcObject = stream;
-      localStreamRef.current = stream;
-      setMediaError(null);
-
-      if (socketRef.current?.connected) {
-        socketRef.current.emit("ready");
-      }
-    } catch (err) {
-      console.error("Media retry error:", err);
-      setMediaError(err.message);
-    }
   };
 
   const containerVariants = {
