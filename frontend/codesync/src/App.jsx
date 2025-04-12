@@ -18,6 +18,7 @@ const App = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [connectionStatus, setConnectionStatus] = useState("disconnected");
   const [mediaError, setMediaError] = useState(null);
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
 
   const localVideoRef = useRef();
   const [peers, setPeers] = useState([]);
@@ -25,7 +26,16 @@ const App = () => {
   const peerConnections = useRef({});
   const socketRef = useRef();
   const editorRef = useRef();
-  // usePageTransitions();
+
+  // Check for mobile view
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
+
   // Initialize socket connection
   useEffect(() => {
     const socket = io("https://codesync-q15y.onrender.com", {
@@ -381,6 +391,7 @@ const App = () => {
       setMediaError(err.message);
     }
   };
+
   const containerVariants = {
     hidden: { opacity: 0 },
     visible: {
@@ -411,15 +422,29 @@ const App = () => {
         variants={containerVariants}
         style={{
           display: "flex",
+          flexDirection: isMobile ? "column" : "row",
           gap: "20px",
-          padding: "20px",
+          padding: isMobile ? "10px" : "20px",
           backgroundColor: "#282c34",
           minHeight: "100vh",
         }}
       >
-        {/* Left side - Editor */}
-        <div style={{ flex: 1 }}>
-          <motion.h1 style={{ color: "#d84041" }} variants={itemVariants}>
+        {/* Main content area */}
+        <div
+          style={{
+            flex: 1,
+            width: isMobile ? "100%" : "auto",
+            overflow: isMobile ? "hidden" : "visible",
+          }}
+        >
+          <motion.h1
+            style={{
+              color: "#d84041",
+              fontSize: isMobile ? "24px" : "32px",
+              textAlign: isMobile ? "center" : "left",
+            }}
+            variants={itemVariants}
+          >
             Code Sync
           </motion.h1>
 
@@ -428,11 +453,17 @@ const App = () => {
             style={{
               marginBottom: "10px",
               display: "flex",
+              flexDirection: isMobile ? "column" : "row",
               gap: "10px",
-              alignItems: "center",
+              alignItems: isMobile ? "stretch" : "center",
             }}
           >
-            <span style={{ color: "white" }}>
+            <span
+              style={{
+                color: "white",
+                textAlign: isMobile ? "center" : "left",
+              }}
+            >
               Status:
               <span
                 style={{
@@ -448,86 +479,129 @@ const App = () => {
                 {connectionStatus}
               </span>
             </span>
-            <motion.button
-              onClick={handleCreateRoom}
-              disabled={!socketRef.current?.connected}
-              whileHover={{ scale: 1.05, backgroundColor: "#e05a5b" }}
-              whileTap={{ scale: 0.95 }}
-              style={{
-                backgroundColor: "#d84041",
-                color: "white",
-                border: "none",
-                padding: "8px 16px",
-                borderRadius: "4px",
-                cursor: "pointer",
-                fontSize: "14px",
-                transition: "background-color 0.2s",
-              }}
-              whileFocus={{ boxShadow: "0 0 0 2px rgba(216, 64, 65, 0.5)" }}
-            >
-              Create Room
-            </motion.button>
 
-            <motion.button
-              onClick={handleJoinRoom}
-              disabled={!socketRef.current?.connected}
-              whileHover={{ scale: 1.05, backgroundColor: "#e05a5b" }}
-              whileTap={{ scale: 0.95 }}
+            <div
               style={{
-                backgroundColor: "#d84041",
-                color: "white",
-                border: "none",
-                padding: "8px 16px",
-                borderRadius: "4px",
-                cursor: "pointer",
-                fontSize: "14px",
-                transition: "background-color 0.2s",
+                display: "flex",
+                flexDirection: isMobile ? "column" : "row",
+                gap: "10px",
+                alignItems: "stretch",
+                width: isMobile ? "100%" : "auto",
               }}
-              whileFocus={{ boxShadow: "0 0 0 2px rgba(216, 64, 65, 0.5)" }}
             >
-              Join Room
-            </motion.button>
-            {roomId && <span style={{color : "white"}}>Room: {roomId}</span>}
-            <motion.select
-              value={language}
-              onChange={(e) => setLanguage(e.target.value)}
-              style={{ padding: "5px" }}
-              whileFocus={{ scale: 1.02 }}
-            >
-              <option value="python">Python</option>
-              <option value="cpp">C++</option>
-              <option value="java">Java</option>
-            </motion.select>
-            <motion.button
-              onClick={handleRunCode}
-              disabled={isLoading || !socketRef.current?.connected}
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              animate={{
-                backgroundColor: isLoading ? "#d84041" : "#d84041",
-              }}
+              <motion.button
+                onClick={handleCreateRoom}
+                disabled={!socketRef.current?.connected}
+                whileHover={{ scale: 1.05, backgroundColor: "#e05a5b" }}
+                whileTap={{ scale: 0.95 }}
+                style={{
+                  backgroundColor: "#d84041",
+                  color: "white",
+                  border: "none",
+                  padding: "8px 16px",
+                  borderRadius: "4px",
+                  cursor: "pointer",
+                  fontSize: "14px",
+                  transition: "background-color 0.2s",
+                  width: isMobile ? "100%" : "auto",
+                }}
+                whileFocus={{ boxShadow: "0 0 0 2px rgba(216, 64, 65, 0.5)" }}
+              >
+                Create Room
+              </motion.button>
+
+              <motion.button
+                onClick={handleJoinRoom}
+                disabled={!socketRef.current?.connected}
+                whileHover={{ scale: 1.05, backgroundColor: "#e05a5b" }}
+                whileTap={{ scale: 0.95 }}
+                style={{
+                  backgroundColor: "#d84041",
+                  color: "white",
+                  border: "none",
+                  padding: "8px 16px",
+                  borderRadius: "4px",
+                  cursor: "pointer",
+                  fontSize: "14px",
+                  transition: "background-color 0.2s",
+                  width: isMobile ? "100%" : "auto",
+                }}
+                whileFocus={{ boxShadow: "0 0 0 2px rgba(216, 64, 65, 0.5)" }}
+              >
+                Join Room
+              </motion.button>
+            </div>
+
+            {roomId && (
+              <span
+                style={{
+                  color: "white",
+                  textAlign: isMobile ? "center" : "left",
+                  wordBreak: "break-all",
+                }}
+              >
+                Room: {roomId}
+              </span>
+            )}
+
+            <div
               style={{
-                backgroundColor: "#d84041",
-                color: "white",
-                border: "none",
-                padding: "8px 16px",
-                borderRadius: "4px",
-                cursor: "pointer",
-                fontSize: "14px",
-                transition: "background-color 0.2s",
+                display: "flex",
+                flexDirection: isMobile ? "column" : "row",
+                gap: "10px",
+                alignItems: "center",
+                width: isMobile ? "100%" : "auto",
               }}
             >
-              {isLoading ? "Running..." : "Run"}
-            </motion.button>
+              <motion.select
+                value={language}
+                onChange={(e) => setLanguage(e.target.value)}
+                style={{
+                  padding: "8px",
+                  width: isMobile ? "100%" : "auto",
+                }}
+                whileFocus={{ scale: 1.02 }}
+              >
+                <option value="python">Python</option>
+                <option value="cpp">C++</option>
+                <option value="java">Java</option>
+              </motion.select>
+
+              <motion.button
+                onClick={handleRunCode}
+                disabled={isLoading || !socketRef.current?.connected}
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                animate={{
+                  backgroundColor: isLoading ? "#d84041" : "#d84041",
+                }}
+                style={{
+                  backgroundColor: "#d84041",
+                  color: "white",
+                  border: "none",
+                  padding: "8px 16px",
+                  borderRadius: "4px",
+                  cursor: "pointer",
+                  fontSize: "14px",
+                  transition: "background-color 0.2s",
+                  width: isMobile ? "100%" : "auto",
+                }}
+              >
+                {isLoading ? "Running..." : "Run"}
+              </motion.button>
+            </div>
           </motion.div>
 
           <motion.div
             variants={itemVariants}
-           
+            style={{
+              width: "100%",
+              overflow: "hidden",
+            }}
           >
             <MonacoEditor
-              width="800"
-              height="500"
+              width={isMobile ? "100%" : "100%"}
+              height={isMobile ? "300" : "500"}
               language={language}
               theme="vs-dark"
               value={code}
@@ -537,25 +611,40 @@ const App = () => {
                 automaticLayout: true,
                 minimap: { enabled: false },
                 scrollBeyondLastLine: false,
+                fontSize: isMobile ? 14 : 16,
+                lineHeight: isMobile ? 20 : 24,
               }}
             />
           </motion.div>
 
-          <motion.div style={{ marginTop: "20px" }} variants={itemVariants}>
-            <h3 style={{color : "white"}}>Input</h3>
+          <motion.div
+            style={{
+              marginTop: "20px",
+              width: "100%",
+            }}
+            variants={itemVariants}
+          >
+            <h3 style={{ color: "white" }}>Input</h3>
             <motion.textarea
               value={input}
               onChange={(e) => setInput(e.target.value)}
-              style={{ width: "100%", height: "80px", padding: "8px" }}
+              style={{
+                width: "100%",
+                height: "80px",
+                padding: "8px",
+                boxSizing: "border-box",
+              }}
               placeholder="Enter input for your code here..."
               whileFocus={{
                 boxShadow: "0 0 0 2px #d84041",
-                color : "white",
+                color: "white",
                 backgroundColor: "rgba(255,255,255,0.1)",
               }}
             />
 
-            <h3 style={{color : "white"}}>Output {isLoading && "(Running...)"}</h3>
+            <h3 style={{ color: "white", marginTop: "15px" }}>
+              Output {isLoading && "(Running...)"}
+            </h3>
             <motion.pre
               style={{
                 background: "#f0f0f0",
@@ -563,6 +652,8 @@ const App = () => {
                 whiteSpace: "pre-wrap",
                 maxHeight: "200px",
                 overflow: "auto",
+                width: "100%",
+                boxSizing: "border-box",
               }}
               animate={{
                 backgroundColor: isLoading ? "#f8f8f8" : "#f0f0f0",
