@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from "react";
 import io from "socket.io-client";
 import MonacoEditor from "react-monaco-editor";
 import { motion, AnimatePresence } from "framer-motion";
-
+import { ShootingStarsAndStarsBackgroundDemo } from "./components/bg";
 const App = () => {
   const [code, setCode] = useState("");
   const [language, setLanguage] = useState("python");
@@ -117,7 +117,7 @@ const App = () => {
     const id = prompt("Enter Room ID:");
     if (id && socketRef.current?.connected) {
       socketRef.current.emit("join-room", id.trim());
-    } else if (!socketRef.current?.connected) {
+    } else if (!socketRef.current?.connected) {       
       alert("Not connected to server. Please wait...");
     }
   };
@@ -194,6 +194,21 @@ const App = () => {
   };
 
   return (
+    <div style={{ position: "relative", minHeight: "100vh" }}>
+    {/* Background - placed first so it appears behind content */}
+    <div style={{ 
+      position: "fixed", 
+      top: 0, 
+      left: 0, 
+      right: 0, 
+      bottom: 0, 
+      zIndex: 0,
+      overflow: "hidden"
+    }}>
+      <ShootingStarsAndStarsBackgroundDemo />
+    </div>
+
+    <div style={{ position: "relative", zIndex: 1 }}>
     <AnimatePresence>
       <motion.div
         initial="hidden"
@@ -204,8 +219,8 @@ const App = () => {
           flexDirection: isMobile ? "column" : "row",
           gap: "20px",
           padding: isMobile ? "10px" : "20px",
-          backgroundColor: "#282c34",
-          minHeight: "100vh",
+          backgroundColor: "rgba(40, 44, 52, 0.85)",
+          minHeight: "blur(2px)",
         }}
       >
         {/* Main content area */}
@@ -412,13 +427,15 @@ const App = () => {
                 height: "80px",
                 padding: "8px",
                 boxSizing: "border-box",
+                backgroundColor: "rgba(255,255,255,0.1)",
+                color :"white"
               }}
               placeholder="Enter input for your code here..."
-              whileFocus={{
-                boxShadow: "0 0 0 2px #d84041",
-                color: "white",
-                backgroundColor: "rgba(255,255,255,0.1)",
-              }}
+              // whileFocus={{
+              //   // boxShadow: "0 0 0 2px #d84041",
+              //   color: "white",
+              //   backgroundColor: "rgba(255,255,255,0.1)",
+              // }}
             />
 
             <h3 style={{ color: "white", marginTop: "15px" }}>
@@ -444,6 +461,8 @@ const App = () => {
         </div>
       </motion.div>
     </AnimatePresence>
+    </div>
+    </div>
   );
 };
 

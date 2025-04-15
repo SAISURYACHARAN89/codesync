@@ -1,5 +1,13 @@
 {
   "dependencies": {
-    "simple-peer": "^9.11.1"
+    "@vitejs/plugin-legacy": "^6.0.2",
+    "buffer": "^6.0.3",
+    "clsx": "^2.1.1",
+    "motion": "^12.7.3",
+    "simple-peer": "^9.11.1",
+    "tailwind-merge": "^3.2.0"
+  },
+  "devDependencies": {
+    "@types/react": "^19.1.2"
   }
 }
