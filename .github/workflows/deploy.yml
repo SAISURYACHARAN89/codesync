@@ -23,7 +23,7 @@ jobs:
         run: |
           docker build -t ${{ secrets.DOCKER_USERNAME }}/codesync-backend:latest ./backend
           docker push ${{ secrets.DOCKER_USERNAME }}/codesync-backend:latest
-
+          
       - name: Trigger Render Deploy (Backend)
         run: |
           curl -X POST ${{ secrets.RENDER_HOOK_BACKEND }}
