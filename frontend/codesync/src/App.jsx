@@ -205,7 +205,7 @@ const App = () => {
           flexDirection: isMobile ? "column" : "row",
           gap: "20px",
           padding: isMobile ? "10px" : "20px",
-          backgroundColor: "rgba(40, 44, 52, 0.85)",
+          backgroundColor: "#282c34",
           minHeight: "blur(2px)",
         }}
       >
