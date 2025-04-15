@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from "react";
 import io from "socket.io-client";
 import MonacoEditor from "react-monaco-editor";
 import { motion, AnimatePresence } from "framer-motion";
-import { ShootingStarsAndStarsBackgroundDemo } from "./components/bg";
+
 const App = () => {
   const [code, setCode] = useState("");
   const [language, setLanguage] = useState("python");
@@ -194,21 +194,7 @@ const App = () => {
   };
 
   return (
-    <div style={{ position: "relative", minHeight: "100vh" }}>
-    {/* Background - placed first so it appears behind content */}
-    <div style={{ 
-      position: "fixed", 
-      top: 0, 
-      left: 0, 
-      right: 0, 
-      bottom: 0, 
-      zIndex: 0,
-      overflow: "hidden"
-    }}>
-      <ShootingStarsAndStarsBackgroundDemo />
-    </div>
 
-    <div style={{ position: "relative", zIndex: 1 }}>
     <AnimatePresence>
       <motion.div
         initial="hidden"
@@ -461,8 +447,7 @@ const App = () => {
         </div>
       </motion.div>
     </AnimatePresence>
-    </div>
-    </div>
+   
   );
 };
 
